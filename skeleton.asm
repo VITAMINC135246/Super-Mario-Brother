@@ -1068,10 +1068,11 @@ loop_objs:
     #         offset = $t2 * 20 bytes
     #         $t4 = base address ($t0) + offset
     #
-    sll   $t3, $t2, 4
-    sll   $t4, $t2, 2
-    addu  $t3, $t3, $t4
+    sll   $t3, $t2, 4   #2^4
+    sll   $t4, $t2, 2   #2^2
+    addu  $t3, $t3, $t4 #16+4 =20
     addu  $t4, $t0, $t3
+
 
     #     read object data:
     #         $t5 = ox  (object X)
@@ -1272,9 +1273,7 @@ handle_flag:
     # else �� goto flag_stop
     
     blt     $t1, $t0, flag_fall
-    nop
     j       flag_stop
-    nop
 	
 flag_fall:
     ###############################################################
@@ -1301,8 +1300,8 @@ flag_fall:
     lw      $a0, 0($t9)
 
     la      $t9, current_obj_n
-    lw      $t9, 0($t9)
-    lw      $a1, 0($t9)
+    lw      $t0, 0($t9)
+    lw      $a1, 0($t0)
 
     la      $a2, img_tbl
     lw      $a3, img_tbl_n
@@ -1310,8 +1309,6 @@ flag_fall:
     syscall
 
     j       flag_end
-    nop
-
 flag_stop:
     ###############################################################
     # Behavior:
@@ -1327,7 +1324,6 @@ flag_stop:
     sw      $t3, 0($t2)
 
     j       flag_end
-    nop
 
 flag_end:
     ###############################################################
@@ -1361,7 +1357,7 @@ next_obj:
 
 nohit:
     li $v0,0
-
+    move $a0,$zero
     ###############################################################
     # Restore registers and return
     ###############################################################
@@ -1468,11 +1464,12 @@ do_move:
     # if direction == 0:
     #     direction = +1                     # default: move right
     #     *direction_ptr = +1
+    bnez    $t6, dir_ready_task4
     li      $t7, 1
-    movz    $t6, $t7, $t6            # default to +1 if direction is zero
-    sw      $t6, 0($t5)              # persist default when applied
+    movz    $t6, $t7, $t6
+    sw      $t6, 0($t5)
     
-    
+dir_ready_task4:
     ###############################################################
     # Store initial X position if first run
     ###############################################################
@@ -1507,15 +1504,15 @@ has_direction:
     #     direction = -1                     # flip to move left
     li      $t5, 400
     bgt     $t3, $t5, flip_to_left
-    nop
+
     # elif obj.x < 352:
     #     direction = +1                     # flip to move right
     li      $t5, 352
     blt     $t3, $t5, flip_to_right
-    nop
+
     # *direction_ptr = direction
     j       save_direction
-    nop
+
     # goto next_enemy
 ##############################################################################################################################
 # Task_4 End
@@ -1726,11 +1723,11 @@ rh_loop:
     #   obj.h  = [12]
     #   obj.id = [16]
     
-    lw      $t7, 0($t3) #base, [0], 4 bytes per unit
-    lw      $t8, 4($t3)
-    lw      $a2, 8($t3)
-    lw      $a3, 12($t3)
-    lw      $t9, 16($t3)
+    lw      $t7, 0($t3) #base, [0], 4 bytes per unit, x
+    lw      $t8, 4($t3)#y
+    lw      $a2, 8($t3)#w
+    lw      $a3, 12($t3)#h
+    lw      $t9, 16($t3)#id
 
     ###############################################################
     # Skip objects that are non-collidable (id = 3,4,5,6,7,8)
@@ -1751,10 +1748,10 @@ rh_loop:
     beq     $t9, $t2, rh_next
     
     
-    addu    $a2, $t7, $a2
-    addu    $a3, $t8, $a3
     ###############################################################
     # Axis-Aligned Rectangle Overlap Test (AABB)
+    addu    $a2, $t7, $a2      #obj.right
+    addu    $a3, $t8, $a3	#obj.bottom
     ###############################################################
     # if (Mario.right <= Obj.left)   �� rh_next
     addu    $t2, $s0, $t0
@@ -1765,6 +1762,7 @@ rh_loop:
     addu    $t3, $s1, $t1
     ble     $t3, $t8, rh_next
     # if (Mario.top    >= Obj.bottom)�� rh_next
+    
     bge     $s1, $a3, rh_next
    
     # Otherwise �� collision detected
@@ -1797,6 +1795,8 @@ rh_hit_left:
     move    $s2, $zero
     # goto rh_done
     j       rh_done
+    
+
 
 rh_next:
     ###############################################################
