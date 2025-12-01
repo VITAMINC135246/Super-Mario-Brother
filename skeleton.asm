@@ -789,8 +789,8 @@ not_left:
     #     # keep $a2 positive �� moving right
     #     goto have_target
     
-    bnez  $t1, have_target
-    j     set_target_stop
+    beqz    $t1,                    set_target_stop
+    j       have_target
 
 ##############################################################################################################################
 # Task_1 End
@@ -1468,9 +1468,9 @@ do_move:
     # if direction == 0:
     #     direction = +1                     # default: move right
     #     *direction_ptr = +1
-    bnez    $t6, dir_ready_task4
-    li      $t6, 1
-    sw      $t6, 0($t5)
+    li      $t7, 1
+    movz    $t6, $t7, $t6            # default to +1 if direction is zero
+    sw      $t6, 0($t5)              # persist default when applied
     
     
     ###############################################################
@@ -1478,7 +1478,6 @@ do_move:
     ###############################################################
     # if enemy_origin_x[i] not set:
     #     enemy_origin_x[i] = 352            # starting X coordinate
-dir_ready_task4:
     la      $t5, enemy_origin_x
     sll     $t7, $t2, 2
     addu    $t5, $t5, $t7
@@ -1783,13 +1782,7 @@ rh_loop:
     #     Mario.x = Obj.right
     #     Mario.velocityX = 0
     #     goto rh_done
-    
-    bgtz    $s2, rh_hit_right
-    j       rh_hit_left
-
-
-rh_hit_right:
-
+    blez    $s2, rh_hit_left
     subu    $s0, $t7, $t0
     move    $s2, $zero
     j       rh_done
@@ -1799,7 +1792,7 @@ rh_hit_left:
     # Left collision branch (mirrors logic above)
     ###############################################################
     # Mario.x = Obj.right
-    subu    $s0, $t7, $t0
+    move    $s0, $a2
     # Mario.velocityX = 0
     move    $s2, $zero
     # goto rh_done
